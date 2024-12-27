@@ -1,0 +1,44 @@
+Session Attach with Default Bearer Call Flow
+
+This section describes the call flow and message interaction between MPC 1.0 components for a basic session attach with only a default bearer, as depicted in Figure 5-1.
+
+1. To initiate the Attach procedure, the UE transmits an Attach Request message (IMSI or old GUTI, last visited TAI (if available), UE Network Capability, PDN Address Allocation, Protocol Configuration Options, Attach Type) and an indication of the Selected Network to the eNodeB. IMSI is included if the UE does not have a valid GUTI available. If the UE has a valid GUTI, it is included.
+
+2. eNodeB derives the MME from the GUTI and from the indicated Selected Network. eNodeB forwards the Attach Request message to the new MME contained in a S1-MME control message (Initial UE message) together with the Selected Network and an indication of the E-UTRAN Area identity, a globally unique E-UTRAN ID of the cell from which the eNodeB received the message to the new MME.
+
+3. UE authentication is mandatory. AKA authentication is performed in this step, and an NAS level security association with the UE is established to protect further NAS protocol messages. The authentication procedure is described in detail in UE Authentication
+
+4. If authentication is successful, the MME sends an Update Location to the HSS.
+
+5. The HSS sends an Update Location Answer that contains the Subscription Data message to the MME. The Subscription Data contains the list of all APNs that the UE can access, an indication of the Default APN, and the EPS subscribed QoS profile for each permitted APN.
+
+6. If authentication fails, the MME sends an ATTACH REJECT message to the eNodeB with the reject cause of UNSPECIFIED PROTOCOL ERROR.
+
+7. The MME selects the SGW based either on the static configuration or DNS (as described in SGW Selection) and allocates an EPS Bearer Identity for the Default Bearer associated with the UE. If the PDN subscription context received from the HSS contains no PGW address, the MME selects a PGW from its local configuration. The MME then sends a Create Default Bearer Request (IMSI, MME Context ID, APN, RAT type, Default Bearer QoS, PDN Address Allocation, AMBR, EPS Bearer Identity, Protocol Configuration Options, ME Identity, User Location Information) message to the selected SGW.
+
+8. The SGW creates a new entry in its EPS Bearer table and sends a Create Default Bearer Request (IMSI, APN, SGW Address for the user plane, SGW TEID of the user plane, SGW TEID of the control plane, RAT type, Default Bearer QoS, PDN Address Allocation, AMBR, EPS Bearer Identity, Protocol Configuration Options, ME Identity, User Location Information) message to the PGW.
+
+9. The PGW sends a Credit-Control-Initial message to the PCRF requesting the bearer configuration/PCC rules for the current bearer request.
+
+10.The PCRF returns a Credit-Control-Answer message to the PGW sending the required information that would include QoS information, APN-AMBR data, and so on. Interaction of the PCRF with its internal database is not shown in the call flow.
+
+11.The PGW returns a Create Default Bearer Response (PGW Address for the user plane, PGW TEID of the user plane, PGW TEID of the control plane, PDN Address Information, EPS Bearer Identity, Protocol Configuration Options) message to the SGW. PDN Address Information is included, if the PGW allocated a PDN address Based on PDN Address Allocation received in
+the Create Default Bearer Request. PDN Address Information contains an IPv4 address for IPv4 and/or an IPv6 prefix and an Interface Identifier for IPv6. The PGW takes into account the UE IP version capability indicated in the PDN Address Allocation and the policies of operator when the PGW allocates the PDN Address Information.
+
+12.Downlink data can start flowing towards the SGW. The SGW buffers the data.
+
+13.The SGW returns a Create Default Bearer Response (PDN Address Information, SGW address for User Plane, SGW TEID for User Plane, SGW Context ID, EPS Bearer Identity, Protocol Configuration Options) message to the new MME. PDN Address Information is included if it was provided by the PGW.
+
+14.The MME sends an Attach Accept (APN, GUTI, PDN Address Information, TAI List, EPS Bearer Identity, Session Management Configuration IE, Protocol Configuration Options) message to the eNodeB.
+
+15.The eNodeB sends Radio Bearer Establishment Request including the EPS Radio Bearer Identity to the UE. The Attach Accept message is also sent along to the UE.
+
+16.The UE sends the Radio Bearer Establishment Response to the eNodeB. In this message, the Attach Complete message (EPS Bearer Identity) is included.
+
+17.The eNodeB forwards the Attach Complete (EPS Bearer Identity) message to the MME. This marks the completion of the Attach Procedure. The UE can send data over the default bearer
+
+18.The MME sends a Modify Bearer Request (eNodeB address, eNodeB TEID) message to the SGW.
+
+19.The SGW sends a Modify Bearer Response (EPS Bearer Identity) message to the MME. The SGW can then send its buffered downlink packets.
+
+20.The MME sends a Notify-Req message to the HSS informing the the PGW GW selection and the APN information. The HSS stores in its database the PDN GW and the APN information for that UE and replies with a DIAMETER SUCCESS in a Notify-Ans message.
